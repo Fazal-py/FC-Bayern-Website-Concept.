@@ -1,0 +1,669 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}</style></head><body>
+<style>
+  :root{
+    --ink:#0B0406;
+    --ink-2:#160A0D;
+    --ink-3:#1F0F13;
+    --haze:#3A1A20;
+    --mist:#C29AA1;
+    --chalk:#FFF6F7;
+    --red:#DC052D;
+    --red-hi:#FF3B57;
+    --blue:#0C5DA5;
+    --white:#FFFFFF;
+    --edge:rgba(220,120,135,.16);
+
+    --fdisplay:"Helvetica Neue","Arial Nova",Arial,system-ui,sans-serif;
+    --fbody:"Inter","Helvetica Neue",Arial,system-ui,sans-serif;
+    --fmono:ui-monospace,"SF Mono","Cascadia Code",Consolas,monospace;
+
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--ink);color:var(--chalk);
+    font-family:var(--fbody);font-size:17px;line-height:1.6;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+
+  /* ambient layers */
+  #atmos{position:fixed;inset:0;width:100%;height:100%;z-index:-3;display:block}
+  .vignette{
+    position:fixed;inset:0;z-index:-2;pointer-events:none;
+    background:
+      radial-gradient(115% 85% at 74% 6%, rgba(220,5,45,.22), transparent 44%),
+      radial-gradient(150% 120% at 50% 122%, rgba(220,5,45,.08), transparent 55%),
+      radial-gradient(100% 100% at 50% 50%, transparent 52%, rgba(0,0,0,.62) 100%);
+  }
+  .grain{
+    position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .cursor{
+    position:fixed;top:0;left:0;z-index:200;pointer-events:none;
+    width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;
+    border:1px solid rgba(255,59,87,.6);
+    background:radial-gradient(circle,rgba(220,5,45,.22),transparent 70%);
+    transition:width .18s,height .18s,margin .18s,opacity .3s;mix-blend-mode:screen;opacity:0;
+  }
+  .cursor.hot{width:52px;height:52px;margin:-26px 0 0 -26px;border-color:rgba(255,59,87,.9)}
+  @media (hover:none){.cursor{display:none}}
+
+  .wrap{max-width:1240px;margin:0 auto;padding:0 28px}
+
+  /* nav */
+  .nav{
+    position:fixed;top:0;left:0;right:0;z-index:100;
+    display:flex;align-items:center;justify-content:space-between;padding:18px 28px;
+    transition:background .4s,backdrop-filter .4s,border-color .4s;border-bottom:1px solid transparent;
+  }
+  .nav.scrolled{background:rgba(11,4,6,.74);backdrop-filter:blur(14px);border-bottom:1px solid var(--edge)}
+  .brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--chalk)}
+  .brand .mini{width:30px;height:30px;flex:0 0 auto}
+  .brand b{font-family:var(--fdisplay);font-weight:800;letter-spacing:.12em;font-size:15px;text-transform:uppercase}
+  .nav-links{display:flex;align-items:center;gap:6px}
+  .nlink{font-family:var(--fmono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--mist);
+    text-decoration:none;padding:9px 13px;border-radius:999px;transition:color .25s}
+  .nlink:hover{color:var(--chalk)}
+  .pill{font-family:var(--fmono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--white);
+    background:var(--red);text-decoration:none;padding:10px 18px;border-radius:999px;font-weight:600;
+    box-shadow:0 0 0 rgba(220,5,45,0);transition:box-shadow .3s,transform .2s}
+  .pill:hover{box-shadow:0 0 30px rgba(220,5,45,.55);transform:translateY(-1px)}
+  .lang{display:inline-flex;align-items:center;border:1px solid var(--edge);border-radius:999px;overflow:hidden;margin-right:4px}
+  .lang button{font-family:var(--fmono);font-size:11px;letter-spacing:.12em;padding:7px 11px;background:transparent;color:var(--mist);border:none;cursor:pointer;transition:background .25s,color .25s}
+  .lang button.active{background:var(--red);color:#fff}
+  .lang button:hover{color:var(--chalk)}
+  .lang button.active:hover{color:#fff}
+
+  /* hero */
+  .hero{position:relative;min-height:100svh;display:flex;align-items:center;padding:120px 0 60px}
+  .hero-in{max-width:1240px;margin:0 auto;width:100%;padding:0 28px;
+    display:grid;grid-template-columns:1.02fr .98fr;gap:24px;align-items:center}
+  .kicker{display:inline-flex;align-items:center;gap:10px;font-family:var(--fmono);font-size:12px;
+    letter-spacing:.26em;text-transform:uppercase;color:var(--red-hi);margin-bottom:26px}
+  .kicker .dot{width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 12px var(--red);animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  .title{font-family:var(--fdisplay);font-weight:800;text-transform:uppercase;
+    font-size:clamp(58px,10vw,158px);line-height:.84;letter-spacing:-.04em;margin:0;text-wrap:balance}
+  .title .ln{display:block;overflow:hidden}
+  .title .ln span{display:block;transform:translateY(105%);transition:transform 1s cubic-bezier(.16,1,.3,1)}
+  .title.in .ln span{transform:translateY(0)}
+  .title .out{color:transparent;-webkit-text-stroke:1.6px var(--red)}
+  .title .ln:nth-child(2) span{transition-delay:.09s}
+  .title .ln:nth-child(3) span{transition-delay:.18s}
+  .title .pt{color:var(--red)}
+
+  .lede{max-width:46ch;color:var(--mist);font-size:clamp(16px,1.4vw,19px);margin:30px 0 34px;
+    opacity:0;transform:translateY(16px);transition:opacity .9s ease .5s,transform .9s ease .5s}
+  .title.in ~ .lede{opacity:1;transform:none}
+  .hero-cta{display:flex;gap:14px;flex-wrap:wrap;opacity:0;transform:translateY(16px);
+    transition:opacity .9s ease .62s,transform .9s ease .62s}
+  .title.in ~ .hero-cta{opacity:1;transform:none}
+
+  .btn{font-family:var(--fmono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;
+    padding:15px 26px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:10px;border:1px solid transparent}
+  .btn-solid{background:var(--red);color:var(--white);font-weight:600;transition:box-shadow .3s}
+  .btn-solid:hover{box-shadow:0 0 40px rgba(220,5,45,.6)}
+  .btn-ghost{border-color:var(--edge);color:var(--chalk);transition:border-color .3s,color .3s}
+  .btn-ghost:hover{border-color:var(--red);color:var(--red-hi)}
+
+  /* crest stage */
+  .stage{position:relative;aspect-ratio:1/1;width:100%;max-width:560px;justify-self:center;
+    perspective:1200px;cursor:grab;touch-action:none;isolation:isolate}
+  .stage:active{cursor:grabbing}
+  .stage .rings{position:absolute;inset:-70%;border-radius:50%;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(0,0,0,.62) 0 3%, transparent 40%),
+      repeating-radial-gradient(circle at 50% 50%, #c4183f 0 3.2%, #7d1029 3.2% 6.4%);
+    -webkit-mask:radial-gradient(circle at 50% 50%, #000 44%, transparent 66%);
+    mask:radial-gradient(circle at 50% 50%, #000 44%, transparent 66%);
+    animation:breathe 6s ease-in-out infinite}
+  @keyframes breathe{0%,100%{opacity:.9;transform:scale(1)}50%{opacity:1;transform:scale(1.05)}}
+  .stage .pulse{position:absolute;left:50%;top:50%;width:44%;height:44%;z-index:1;pointer-events:none;
+    border:2px solid rgba(255,86,120,.85);border-radius:50%;
+    box-shadow:0 0 22px rgba(255,60,100,.75),inset 0 0 14px rgba(255,60,100,.4);
+    transform:translate(-50%,-50%) scale(.55);opacity:0;animation:ping 3.9s ease-out infinite}
+  .stage .pulse.p2{animation-delay:1.3s}
+  .stage .pulse.p3{animation-delay:2.6s}
+  @keyframes ping{0%{transform:translate(-50%,-50%) scale(.5);opacity:0}
+    14%{opacity:.85}100%{transform:translate(-50%,-50%) scale(2.15);opacity:0}}
+  .coin{position:absolute;inset:13%;transform-style:preserve-3d;will-change:transform;z-index:2;
+    animation:neon 4s ease-in-out infinite}
+  @keyframes neon{
+    0%,100%{filter:drop-shadow(0 0 12px rgba(255,255,255,.5)) drop-shadow(0 0 30px rgba(255,44,84,.55)) drop-shadow(0 16px 26px rgba(0,0,0,.5))}
+    50%{filter:drop-shadow(0 0 20px rgba(255,255,255,.8)) drop-shadow(0 0 48px rgba(255,52,96,.85)) drop-shadow(0 16px 26px rgba(0,0,0,.5))}}
+  .cface{position:absolute;inset:0;backface-visibility:hidden;border-radius:50%;overflow:hidden;
+    box-shadow:inset 0 0 26px rgba(0,0,0,.32)}
+  .cface svg{width:100%;height:100%;display:block}
+  .cback{transform:rotateY(180deg)}
+  .spin-hint{position:absolute;bottom:-4px;left:50%;transform:translateX(-50%);
+    font-family:var(--fmono);font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;
+    color:var(--mist);opacity:.7;pointer-events:none;white-space:nowrap}
+
+  .scrollcue{position:absolute;bottom:26px;left:28px;display:flex;align-items:center;gap:12px;
+    font-family:var(--fmono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--mist)}
+  .scrollcue .bar{width:44px;height:1px;background:var(--mist);position:relative;overflow:hidden}
+  .scrollcue .bar::after{content:"";position:absolute;inset:0;background:var(--red);
+    transform:translateX(-100%);animation:sweep 2.4s infinite cubic-bezier(.7,0,.3,1)}
+  @keyframes sweep{50%{transform:translateX(0)}100%{transform:translateX(100%)}}
+
+  /* ticker */
+  .ticker{border-top:1px solid var(--edge);border-bottom:1px solid var(--edge);padding:14px 0;overflow:hidden;background:rgba(22,10,13,.5)}
+  .ticker-track{display:flex;gap:56px;white-space:nowrap;width:max-content;animation:marq 36s linear infinite}
+  .ticker:hover .ticker-track{animation-play-state:paused}
+  .ticker-item{font-family:var(--fmono);font-size:13px;letter-spacing:.05em;color:var(--mist);display:flex;gap:12px;align-items:center}
+  .ticker-item b{color:var(--chalk);font-weight:600}
+  .ticker-item .ft{color:var(--red-hi)}
+  .ticker-item .lv{color:#3ad07f}
+  @keyframes marq{to{transform:translateX(-50%)}}
+
+  section{position:relative}
+  .eyebrow{font-family:var(--fmono);font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--red-hi);
+    display:flex;align-items:center;gap:14px;margin-bottom:26px}
+  .eyebrow::before{content:"";width:34px;height:1px;background:var(--red);opacity:.7}
+  .h2{font-family:var(--fdisplay);font-weight:800;text-transform:uppercase;
+    font-size:clamp(34px,5.4vw,74px);line-height:.92;letter-spacing:-.03em;margin:0;text-wrap:balance}
+
+  /* ethos */
+  .ethos{padding:130px 0 110px}
+  .ethos-grid{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:start}
+  .manifesto p{font-size:clamp(22px,2.5vw,33px);line-height:1.26;color:var(--chalk);margin:0 0 8px;font-weight:400}
+  .manifesto p .mut{color:var(--mist)}
+  .ethos-side{color:var(--mist);border-left:1px solid var(--edge);padding-left:30px}
+  .ethos-side p{margin:0 0 20px}
+  .ethos-side b{color:var(--chalk)}
+
+  /* rekordmeister — full-bleed red band */
+  .rekord{background:var(--red);color:var(--white);padding:96px 0;position:relative;overflow:hidden}
+  .rekord::before{content:"";position:absolute;inset:0;opacity:.10;pointer-events:none;
+    background:repeating-linear-gradient(45deg,rgba(255,255,255,.6) 0 2px,transparent 2px 26px)}
+  .rekord .eyebrow{color:rgba(255,255,255,.85)}
+  .rekord .eyebrow::before{background:var(--white)}
+  .rekord .h2{color:var(--white)}
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:52px;
+    border-top:1px solid rgba(255,255,255,.28)}
+  .stat{padding:38px 26px 8px;border-right:1px solid rgba(255,255,255,.28)}
+  .stat:last-child{border-right:none}
+  .stat .num{font-family:var(--fmono);font-weight:600;font-variant-numeric:tabular-nums;
+    font-size:clamp(44px,5vw,72px);line-height:1;color:var(--white);letter-spacing:-.02em}
+  .stat .lbl{font-family:var(--fmono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:rgba(255,255,255,.82);margin-top:16px}
+
+  /* fixtures */
+  .fixtures{padding:120px 0}
+  .fx-list{margin-top:48px;border-top:1px solid var(--edge)}
+  .fx{display:grid;grid-template-columns:130px 1fr auto auto;gap:26px;align-items:center;
+    padding:26px 8px;border-bottom:1px solid var(--edge);transition:padding-left .35s,background .35s;position:relative}
+  .fx:hover{padding-left:22px;background:rgba(31,15,19,.55)}
+  .fx::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--red);
+    transform:scaleY(0);transform-origin:top;transition:transform .35s}
+  .fx:hover::before{transform:scaleY(1)}
+  .fx .date{font-family:var(--fmono);font-size:13px;color:var(--mist);letter-spacing:.05em}
+  .fx .opp{font-family:var(--fdisplay);font-weight:800;text-transform:uppercase;font-size:clamp(20px,2.4vw,30px);letter-spacing:-.02em}
+  .fx .opp small{display:block;font-family:var(--fmono);font-weight:400;font-size:11px;letter-spacing:.14em;color:var(--mist);text-transform:uppercase;margin-top:5px}
+  .fx .opp small .kl{color:var(--red-hi)}
+  .fx .time{font-family:var(--fmono);font-size:15px;color:var(--chalk);font-variant-numeric:tabular-nums}
+  .fx .venue{font-family:var(--fmono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mist)}
+  .tag-live{display:inline-flex;align-items:center;gap:7px;color:#3ad07f;font-family:var(--fmono);font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+  .tag-live .d{width:7px;height:7px;border-radius:50%;background:#3ad07f;box-shadow:0 0 10px #3ad07f;animation:pulse 1.6s infinite}
+
+  /* join */
+  .join{padding:120px 0 130px;text-align:center;position:relative}
+  .join .eyebrow{justify-content:center}
+  .join .h2{margin:0 auto}
+  .join p{max-width:52ch;margin:26px auto 40px;color:var(--mist)}
+  .magnet{position:relative;display:inline-block}
+  .magnet .btn-solid{padding:20px 42px;font-size:14px}
+
+  /* footer */
+  footer{border-top:1px solid var(--edge);padding:56px 0 46px}
+  .foot-grid{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;flex-wrap:wrap}
+  .foot-mark{font-family:var(--fdisplay);font-weight:800;text-transform:uppercase;
+    font-size:clamp(44px,9vw,116px);line-height:.85;letter-spacing:-.04em;color:transparent;-webkit-text-stroke:1px var(--haze)}
+  .foot-cols{display:flex;gap:56px;flex-wrap:wrap}
+  .foot-col h5{font-family:var(--fmono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--red-hi);margin:0 0 14px}
+  .foot-col a{display:block;color:var(--mist);text-decoration:none;font-size:14px;margin-bottom:9px;transition:color .25s}
+  .foot-col a:hover{color:var(--chalk)}
+  .foot-fine{margin-top:40px;color:var(--mist);font-family:var(--fmono);font-size:11px;letter-spacing:.06em;
+    display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;border-top:1px solid var(--edge);padding-top:22px}
+  .foot-fine .disc{max-width:64ch;line-height:1.7}
+
+  .reveal{opacity:0;transform:translateY(34px);transition:opacity .9s cubic-bezier(.16,1,.3,1),transform .9s cubic-bezier(.16,1,.3,1)}
+  .reveal.in{opacity:1;transform:none}
+
+  @media (max-width:900px){
+    .hero-in{grid-template-columns:1fr;gap:44px}
+    .stage{max-width:360px;order:-1}
+    .ethos-grid{grid-template-columns:1fr;gap:40px}
+    .ethos-side{border-left:none;border-top:1px solid var(--edge);padding-left:0;padding-top:26px}
+    .stat-grid{grid-template-columns:1fr 1fr}
+    .stat{border-bottom:1px solid rgba(255,255,255,.28)}
+    .stat:nth-child(odd){border-right:1px solid rgba(255,255,255,.28)}
+    .fx{grid-template-columns:1fr auto;gap:12px}
+    .fx .date{order:-1;grid-column:1/-1}
+    .fx .venue{display:none}
+    .scrollcue{display:none}
+  }
+  @media (max-width:600px){
+    body{font-size:16px}
+    .nav{padding:13px 16px}
+    .nlink{display:none}
+    .pill{padding:9px 14px;font-size:11px;letter-spacing:.1em}
+    .brand b{font-size:14px}
+    .wrap{padding:0 18px}
+    .hero{padding:96px 0 24px}
+    .hero-in{padding:0 18px;gap:32px}
+    .stage{max-width:300px}
+    .ethos{padding:84px 0 64px}
+    .ethos-grid{gap:30px}
+    .rekord{padding:64px 0}
+    .fixtures{padding:80px 0}
+    .fx{padding:20px 4px}
+    .join{padding:84px 0 96px}
+    .foot-grid{gap:34px}
+    .foot-cols{gap:32px}
+    .foot-fine{flex-direction:column;gap:8px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+    .title .ln span{transform:none}.reveal{opacity:1;transform:none}
+  }
+</style>
+
+<!-- shared SVG defs (crest pattern + gloss) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <pattern id="raute" patternUnits="userSpaceOnUse" width="42" height="72" patternTransform="skewX(-18)">
+      <rect x="-6" width="54" height="72" fill="#ffffff"/>
+      <g fill="#4a0e1c" stroke="#ffffff" stroke-width="4.5" stroke-linejoin="miter">
+        <polygon points="21,0 42,36 21,72 0,36"/>
+        <polygon points="0,-36 21,0 0,36 -21,0"/>
+        <polygon points="42,-36 63,0 42,36 21,0"/>
+        <polygon points="0,36 21,72 0,108 -21,72"/>
+        <polygon points="42,36 63,72 42,108 21,72"/>
+      </g>
+    </pattern>
+    <pattern id="rauteSm" patternUnits="userSpaceOnUse" width="13" height="13" patternTransform="rotate(45 120 120)">
+      <rect width="13" height="13" fill="#ffffff"/>
+      <rect width="6.5" height="6.5" fill="#4a0e1c"/>
+      <rect x="6.5" y="6.5" width="6.5" height="6.5" fill="#4a0e1c"/>
+    </pattern>
+    <radialGradient id="gloss" cx="34%" cy="26%" r="75%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity=".32"/>
+      <stop offset="42%" stop-color="#ffffff" stop-opacity=".05"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity=".24"/>
+    </radialGradient>
+    <path id="arcTop" d="M 30 120 A 90 90 0 0 1 210 120" fill="none"/>
+    <path id="arcBot" d="M 34 120 A 86 86 0 0 0 206 120" fill="none"/>
+  </defs>
+</svg>
+
+<canvas id="atmos"></canvas>
+<div class="vignette"></div>
+<div class="grain"></div>
+<div class="cursor" id="cursor"></div>
+
+<nav class="nav" id="nav">
+  <a class="brand" href="#home">
+    <svg class="mini" viewBox="0 0 240 240" aria-hidden="true">
+      <circle cx="120" cy="120" r="118" fill="#fff"/>
+      <circle cx="120" cy="120" r="104" fill="url(#rauteSm)"/>
+    </svg>
+    <b>FC Bayern</b>
+  </a>
+  <div class="nav-links">
+    <a class="nlink" href="#ethos" data-i18n="navClub">The Club</a>
+    <a class="nlink" href="#rekord" data-i18n="navRecord">Record Champions</a>
+    <a class="nlink" href="#fixtures" data-i18n="navFixtures">Fixtures</a>
+    <div class="lang" id="lang" role="group" aria-label="Language">
+      <button type="button" data-set="en" class="active">EN</button>
+      <button type="button" data-set="de">DE</button>
+    </div>
+    <a class="pill" href="#join" data-i18n="navJoin">Become a Member</a>
+  </div>
+</nav>
+
+<header class="hero" id="home">
+  <div class="hero-in">
+    <div class="hero-copy">
+      <span class="kicker" data-i18n="kicker"><span class="dot"></span> Record Champions · Since 1900 · Allianz Arena</span>
+      <h1 class="title" id="title">
+        <span class="ln"><span>Mia</span></span>
+        <span class="ln"><span class="out">san</span></span>
+        <span class="ln"><span>mia<b class="pt">.</b></span></span>
+      </h1>
+      <p class="lede" data-i18n="lede">The record champions of Germany. Thirty-four leagues, six European crowns, and one idea that has never once changed — <em>we are who we are</em>. Grab the badge. Give it a spin.</p>
+      <div class="hero-cta">
+        <a class="btn btn-solid" href="#join" data-i18n="ctaJoin">Become a Member</a>
+        <a class="btn btn-ghost" href="#fixtures" data-i18n="ctaFix">See the Fixtures</a>
+      </div>
+    </div>
+
+    <div class="stage" id="stage">
+      <div class="rings"></div>
+      <div class="pulse p1"></div>
+      <div class="pulse p2"></div>
+      <div class="pulse p3"></div>
+      <div class="coin" id="coin">
+        <!-- FRONT -->
+        <div class="cface cfront">
+          <svg viewBox="0 0 240 240" aria-label="FC Bayern emblem">
+            <circle cx="120" cy="120" r="118" fill="#0d0508"/>
+            <circle cx="120" cy="120" r="116" fill="#fff"/>
+            <circle cx="120" cy="120" r="104" fill="url(#raute)"/>
+            <circle cx="120" cy="120" r="118" fill="url(#gloss)"/>
+          </svg>
+        </div>
+        <!-- BACK -->
+        <div class="cface cback">
+          <svg viewBox="0 0 240 240" aria-hidden="true">
+            <circle cx="120" cy="120" r="118" fill="#0d0508"/>
+            <circle cx="120" cy="120" r="116" fill="#fff"/>
+            <circle cx="120" cy="120" r="104" fill="url(#raute)"/>
+            <circle cx="120" cy="120" r="118" fill="url(#gloss)"/>
+          </svg>
+        </div>
+      </div>
+      <span class="spin-hint" data-i18n="spinHint">Drag to spin · release to throw</span>
+    </div>
+  </div>
+  <div class="scrollcue"><span class="bar"></span> <span data-i18n="scroll">Scroll</span></div>
+</header>
+
+<div class="ticker"><div class="ticker-track" id="ticker"></div></div>
+
+<section class="ethos" id="ethos">
+  <div class="wrap">
+    <div class="eyebrow reveal" data-i18n="ethosEy">The Club</div>
+    <div class="ethos-grid">
+      <div class="manifesto reveal">
+        <p data-i18n="m1">We are not here to take part.</p>
+        <p data-i18n="m2"><span class="mut">We are here to</span> win everything, <span class="mut">and then to win it again.</span></p>
+        <p data-i18n="m3">Mia san mia. <span class="mut">We are who we are — and everyone who pulls on the red already knows exactly what that costs.</span></p>
+      </div>
+      <div class="ethos-side reveal">
+        <p data-i18n="side1">Founded in Munich in <b>1900</b>, FC Bayern has grown into the most decorated club in German football — and one of the most followed institutions in world sport.</p>
+        <p data-i18n="side2">The standard is set on the red carpet of the <b>Allianz Arena</b>, where more than <b>75,000</b> arrive expecting nothing less than the title, every single season.</p>
+        <p data-i18n="side3">Red and white, with the blue-and-white Bavarian diamonds at its heart. Ambition worn on the chest. That is the whole idea.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="rekord" id="rekord">
+  <div class="wrap">
+    <div class="eyebrow reveal" data-i18n="rekordEy">Record Champions — By the Numbers</div>
+    <h2 class="h2 reveal" data-i18n="rekordH2">A cabinet<br>without equal</h2>
+    <div class="stat-grid reveal">
+      <div class="stat"><div class="num" data-count="34">0</div><div class="lbl" data-i18n="l1">Bundesliga Titles</div></div>
+      <div class="stat"><div class="num" data-count="6">0</div><div class="lbl" data-i18n="l2">European Cups</div></div>
+      <div class="stat"><div class="num" data-count="20">0</div><div class="lbl" data-i18n="l3">DFB-Pokal Wins</div></div>
+      <div class="stat"><div class="num" data-count="316" data-suffix="K">0</div><div class="lbl" data-i18n="l4">Club Members</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="fixtures" id="fixtures">
+  <div class="wrap">
+    <div class="eyebrow reveal" data-i18n="fixEy">Fixtures</div>
+    <h2 class="h2 reveal" data-i18n="fixH2">Next<br>on the pitch</h2>
+    <div class="fx-list">
+      <div class="fx reveal">
+        <div class="date" data-i18n="d1">SAT · 22 AUG</div>
+        <div class="opp" data-i18n="opp1">Bayer Leverkusen <small>Home · Bundesliga MD1</small></div>
+        <div class="time">18:30</div>
+        <div class="venue">Allianz Arena</div>
+      </div>
+      <div class="fx reveal">
+        <div class="date" data-i18n="d2">TONIGHT</div>
+        <div class="opp" data-i18n="opp2">RB Leipzig <small>Home · Bundesliga MD2</small></div>
+        <div class="time"><span class="tag-live"><span class="d"></span> 2—0 · 58'</span></div>
+        <div class="venue">Allianz Arena</div>
+      </div>
+      <div class="fx reveal">
+        <div class="date" data-i18n="d3">SAT · 29 AUG</div>
+        <div class="opp" data-i18n="opp3">Borussia Dortmund <small>Away · <span class="kl">Der Klassiker</span></small></div>
+        <div class="time">18:30</div>
+        <div class="venue">Signal Iduna Park</div>
+      </div>
+      <div class="fx reveal">
+        <div class="date" data-i18n="d4">WED · 16 SEP</div>
+        <div class="opp" data-i18n="opp4">Real Madrid <small>Home · Champions League</small></div>
+        <div class="time">21:00</div>
+        <div class="venue">Allianz Arena</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="join" id="join">
+  <div class="wrap">
+    <div class="eyebrow reveal" data-i18n="joinEy">Membership</div>
+    <h2 class="h2 reveal" data-i18n="joinH2">Wear<br>the red</h2>
+    <p class="reveal" data-i18n="joinP">Join more than 300,000 members who carry the club through every season — a vote at the assembly, priority on matchday, and a place in the oldest, loudest family in German football. Mia san mia.</p>
+    <div class="magnet reveal" id="magnet">
+      <a class="btn btn-solid" href="#join" data-i18n="joinCta">Become a Member</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-mark">FCB · 1900</div>
+      <div class="foot-cols">
+        <div class="foot-col">
+          <h5 data-i18n="fh1">The Club</h5>
+          <a href="#ethos" data-i18n="fl1a">The Club</a><a href="#rekord" data-i18n="fl1b">Honours</a><a href="#fixtures" data-i18n="fl1c">Fixtures</a><a href="#join" data-i18n="fl1d">Membership</a>
+        </div>
+        <div class="foot-col">
+          <h5 data-i18n="fh2">Allianz Arena</h5>
+          <a href="#" data-i18n="fl2a">Getting There</a><a href="#" data-i18n="fl2b">Matchday Guide</a><a href="#" data-i18n="fl2c">Accessibility</a>
+        </div>
+        <div class="foot-col">
+          <h5 data-i18n="fh3">Follow</h5>
+          <a href="#">Instagram</a><a href="#" data-i18n="fl3b">Die Roten</a><a href="#">Newsletter</a>
+        </div>
+      </div>
+    </div>
+    <div class="foot-fine">
+      <span class="disc" data-i18n="disc">Unofficial fan concept and design study. Not affiliated with, endorsed by, or connected to FC Bayern München AG. All club names, crests and marks belong to their respective owners.</span>
+      <span>Mia san mia.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var reduce=window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+  /* ---- atmosphere ---- */
+  var atmos=document.getElementById("atmos"), actx=atmos.getContext("2d");
+  var aw=0,ah=0,dpr=Math.min(window.devicePixelRatio||1,2),motes=[];
+  function sizeAtmos(){aw=atmos.clientWidth;ah=atmos.clientHeight;atmos.width=aw*dpr;atmos.height=ah*dpr;actx.setTransform(dpr,0,0,dpr,0,0);}
+  function seedMotes(){
+    motes=[];var n=Math.round(Math.min(90,aw*ah/16000));
+    for(var i=0;i<n;i++){
+      var wht=Math.random()>0.6;
+      motes.push({x:Math.random()*aw,y:Math.random()*ah,r:Math.random()*1.7+0.3,
+        vy:-(Math.random()*0.28+0.06),vx:(Math.random()-0.5)*0.14,a:Math.random()*0.5+0.1,
+        tw:Math.random()*6.28,ts:Math.random()*0.03+0.008,c:wht?"255,235,238":"255,70,92"});
+    }
+  }
+  function drawAtmos(){
+    actx.clearRect(0,0,aw,ah);actx.globalCompositeOperation="lighter";
+    for(var i=0;i<motes.length;i++){var m=motes[i];
+      if(!reduce){m.y+=m.vy;m.x+=m.vx;m.tw+=m.ts;if(m.y<-6){m.y=ah+6;m.x=Math.random()*aw}if(m.x<-6)m.x=aw+6;if(m.x>aw+6)m.x=-6;}
+      var tw=Math.sin(m.tw)*0.35+0.65;
+      actx.beginPath();actx.fillStyle="rgba("+m.c+","+(m.a*tw).toFixed(3)+")";actx.arc(m.x,m.y,m.r,0,6.2832);actx.fill();
+    }
+    actx.globalCompositeOperation="source-over";
+  }
+
+  /* ---- 3D crest medallion ---- */
+  var stage=document.getElementById("stage"), coin=document.getElementById("coin");
+  var angY=18, velY=0.45, tiltX=-10, dragging=false, lastX=0, lastY=0;
+  var BASE=reduce?0:0.45;
+  function down(e){dragging=true;lastX=e.clientX;lastY=e.clientY;stage.setPointerCapture&&stage.setPointerCapture(e.pointerId);}
+  function move(e){if(!dragging)return;var dx=e.clientX-lastX,dy=e.clientY-lastY;lastX=e.clientX;lastY=e.clientY;
+    angY+=dx*0.45;velY=dx*0.45*0.6;tiltX=Math.max(-42,Math.min(42,tiltX-dy*0.3));}
+  function up(){dragging=false;}
+  stage.addEventListener("pointerdown",down);
+  window.addEventListener("pointermove",move,{passive:true});
+  window.addEventListener("pointerup",up);
+  function updateCoin(){
+    if(!dragging){angY+=velY;velY+=(BASE-velY)*0.03;tiltX+=(-10-tiltX)*0.03;}
+    coin.style.transform="rotateX("+tiltX.toFixed(2)+"deg) rotateY("+angY.toFixed(2)+"deg)";
+  }
+
+  function resize(){dpr=Math.min(window.devicePixelRatio||1,2);sizeAtmos();seedMotes();}
+  window.addEventListener("resize",resize);resize();
+  function loop(){drawAtmos();updateCoin();requestAnimationFrame(loop);}
+  requestAnimationFrame(loop);
+
+  /* ---- nav ---- */
+  var nav=document.getElementById("nav");
+  function onScroll(){if(window.scrollY>40)nav.classList.add("scrolled");else nav.classList.remove("scrolled");}
+  window.addEventListener("scroll",onScroll,{passive:true});onScroll();
+
+  /* ---- reveals + counters ---- */
+  var io=new IntersectionObserver(function(es){es.forEach(function(en){
+    if(en.isIntersecting){en.target.classList.add("in");
+      if(en.target.classList.contains("stat-grid"))countAll(en.target);io.unobserve(en.target);}
+  });},{threshold:0.18});
+  document.querySelectorAll(".reveal").forEach(function(el){io.observe(el);});
+  function countAll(grid){grid.querySelectorAll(".num").forEach(function(el){
+    var target=parseFloat(el.getAttribute("data-count")),suf=el.getAttribute("data-suffix")||"";
+    if(reduce){el.textContent=target+suf;return;}
+    var start=performance.now(),dur=1300;
+    function tick(now){var t=Math.min(1,(now-start)/dur),e=1-Math.pow(1-t,3);
+      el.textContent=Math.round(target*e)+suf;if(t<1)requestAnimationFrame(tick);}
+    requestAnimationFrame(tick);
+  });}
+
+  /* ---- title reveal ---- */
+  setTimeout(function(){document.getElementById("title").classList.add("in");},240);
+
+  /* ---- ticker ---- */
+  var results=[
+    ['FC Bayern','4','VfB Stuttgart','1','FT'],
+    ['Union Berlin','0','FC Bayern','3','FT'],
+    ['FC Bayern','2','RB Leipzig','0','LV'],
+    ['Eintracht Frankfurt','1','FC Bayern','5','FT'],
+    ['FC Bayern','3','Werder Bremen','1','FT']
+  ];
+  function build(){var s="";results.forEach(function(r){
+    var tag=r[4]==='LV'?'<span class="lv">● LIVE</span>':'<span class="ft">FT</span>';
+    s+='<span class="ticker-item">'+tag+' <b>'+r[0]+'</b> '+r[1]+' — '+r[3]+' <b>'+r[2]+'</b></span>';});return s;}
+  document.getElementById("ticker").innerHTML=build()+build();
+
+  /* ---- cursor ---- */
+  var cur=document.getElementById("cursor"),cxp=0,cyp=0,tx=0,ty=0,curOn=false;
+  window.addEventListener("pointermove",function(e){if(e.pointerType==="touch")return;
+    tx=e.clientX;ty=e.clientY;if(!curOn){curOn=true;cur.style.opacity="1";cxp=tx;cyp=ty;}});
+  document.querySelectorAll("a,button,#stage,.magnet").forEach(function(el){
+    el.addEventListener("pointerenter",function(){cur.classList.add("hot");});
+    el.addEventListener("pointerleave",function(){cur.classList.remove("hot");});});
+  function curLoop(){cxp+=(tx-cxp)*0.2;cyp+=(ty-cyp)*0.2;cur.style.transform="translate("+cxp+"px,"+cyp+"px)";requestAnimationFrame(curLoop);}
+  requestAnimationFrame(curLoop);
+
+  /* ---- magnetic CTA ---- */
+  var mag=document.getElementById("magnet");
+  if(mag&&!reduce){var btn=mag.querySelector(".btn-solid");
+    mag.addEventListener("pointermove",function(e){var r=mag.getBoundingClientRect();
+      var dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);
+      btn.style.transform="translate("+dx*0.28+"px,"+dy*0.4+"px)";});
+    mag.addEventListener("pointerleave",function(){btn.style.transform="translate(0,0)";
+      btn.style.transition="transform .4s cubic-bezier(.16,1,.3,1)";setTimeout(function(){btn.style.transition="";},400);});}
+
+  /* ---- smooth anchors ---- */
+  document.querySelectorAll('a[href^="#"]').forEach(function(a){a.addEventListener("click",function(e){
+    var id=a.getAttribute("href");if(id.length<2)return;var t=document.querySelector(id);if(!t)return;
+    e.preventDefault();t.scrollIntoView({behavior:reduce?"auto":"smooth"});});});
+})();
+</script>
+
+<script>
+/* ---- EN / DE language toggle ---- */
+(function(){
+  "use strict";
+  var I18N={
+    navClub:{en:"The Club",de:"Der Verein"},
+    navRecord:{en:"Record Champions",de:"Rekordmeister"},
+    navFixtures:{en:"Fixtures",de:"Spiele"},
+    navJoin:{en:"Become a Member",de:"Mitglied werden"},
+    kicker:{en:'<span class="dot"></span> Record Champions · Since 1900 · Allianz Arena',
+            de:'<span class="dot"></span> Rekordmeister · Seit 1900 · Allianz Arena'},
+    lede:{en:"The record champions of Germany. Thirty-four leagues, six European crowns, and one idea that has never once changed — <em>we are who we are</em>. Grab the badge. Give it a spin.",
+          de:"Der deutsche Rekordmeister. Vierunddreißig Meisterschaften, sechs Europapokale und eine Idee, die sich nie geändert hat — <em>mia san mia</em>. Schnapp dir das Wappen und dreh es."},
+    ctaJoin:{en:"Become a Member",de:"Mitglied werden"},
+    ctaFix:{en:"See the Fixtures",de:"Zu den Spielen"},
+    spinHint:{en:"Drag to spin · release to throw",de:"Zum Drehen ziehen · zum Werfen loslassen"},
+    scroll:{en:"Scroll",de:"Scrollen"},
+    ethosEy:{en:"The Club",de:"Der Verein"},
+    m1:{en:"We are not here to take part.",de:"Wir sind nicht hier, um dabei zu sein."},
+    m2:{en:'<span class="mut">We are here to</span> win everything, <span class="mut">and then to win it again.</span>',
+        de:'<span class="mut">Wir sind hier, um</span> alles zu gewinnen <span class="mut">— und es dann wieder zu gewinnen.</span>'},
+    m3:{en:'Mia san mia. <span class="mut">We are who we are — and everyone who pulls on the red already knows exactly what that costs.</span>',
+        de:'Mia san mia. <span class="mut">Wir sind, wer wir sind — und jeder, der das rote Trikot überstreift, weiß genau, was das kostet.</span>'},
+    side1:{en:'Founded in Munich in <b>1900</b>, FC Bayern has grown into the most decorated club in German football — and one of the most followed institutions in world sport.',
+           de:'1900 in München gegründet, ist der FC Bayern zum erfolgreichsten Verein des deutschen Fußballs herangewachsen — und zu einer der meistverfolgten Institutionen im Weltsport.'},
+    side2:{en:'The standard is set on the red carpet of the <b>Allianz Arena</b>, where more than <b>75,000</b> arrive expecting nothing less than the title, every single season.',
+           de:'Der Maßstab wird in der <b>Allianz Arena</b> gesetzt, wo in jeder Saison mehr als <b>75.000</b> Zuschauer nichts Geringeres als den Titel erwarten.'},
+    side3:{en:'Red and white, with the blue-and-white Bavarian diamonds at its heart. Ambition worn on the chest. That is the whole idea.',
+           de:'Rot und Weiß, mit den blau-weißen bayerischen Rauten im Herzen. Ehrgeiz, auf der Brust getragen. Das ist die ganze Idee.'},
+    rekordEy:{en:"Record Champions — By the Numbers",de:"Rekordmeister — In Zahlen"},
+    rekordH2:{en:"A cabinet<br>without equal",de:"Eine Vitrine<br>ohnegleichen"},
+    l1:{en:"Bundesliga Titles",de:"Bundesliga-Titel"},
+    l2:{en:"European Cups",de:"Europapokale"},
+    l3:{en:"DFB-Pokal Wins",de:"DFB-Pokal-Siege"},
+    l4:{en:"Club Members",de:"Vereinsmitglieder"},
+    fixEy:{en:"Fixtures",de:"Spiele"},
+    fixH2:{en:"Next<br>on the pitch",de:"Als Nächstes<br>auf dem Platz"},
+    d1:{en:"SAT · 22 AUG",de:"SA · 22 AUG"},
+    d2:{en:"TONIGHT",de:"HEUTE ABEND"},
+    d3:{en:"SAT · 29 AUG",de:"SA · 29 AUG"},
+    d4:{en:"WED · 16 SEP",de:"MI · 16 SEP"},
+    opp1:{en:'Bayer Leverkusen <small>Home · Bundesliga MD1</small>',de:'Bayer Leverkusen <small>Heim · Bundesliga 1. Spieltag</small>'},
+    opp2:{en:'RB Leipzig <small>Home · Bundesliga MD2</small>',de:'RB Leipzig <small>Heim · Bundesliga 2. Spieltag</small>'},
+    opp3:{en:'Borussia Dortmund <small>Away · <span class="kl">Der Klassiker</span></small>',de:'Borussia Dortmund <small>Auswärts · <span class="kl">Der Klassiker</span></small>'},
+    opp4:{en:'Real Madrid <small>Home · Champions League</small>',de:'Real Madrid <small>Heim · Champions League</small>'},
+    joinEy:{en:"Membership",de:"Mitgliedschaft"},
+    joinH2:{en:"Wear<br>the red",de:"Trag<br>das Rot"},
+    joinP:{en:"Join more than 300,000 members who carry the club through every season — a vote at the assembly, priority on matchday, and a place in the oldest, loudest family in German football. Mia san mia.",
+           de:"Werde eines von mehr als 300.000 Mitgliedern, die den Verein durch jede Saison tragen — eine Stimme bei der Jahreshauptversammlung, Vorrang am Spieltag und ein Platz in der ältesten, lautesten Familie des deutschen Fußballs. Mia san mia."},
+    joinCta:{en:"Become a Member",de:"Mitglied werden"},
+    fh1:{en:"The Club",de:"Der Verein"},
+    fh2:{en:"Allianz Arena",de:"Allianz Arena"},
+    fh3:{en:"Follow",de:"Folgen"},
+    fl1a:{en:"The Club",de:"Der Verein"},
+    fl1b:{en:"Honours",de:"Titel"},
+    fl1c:{en:"Fixtures",de:"Spiele"},
+    fl1d:{en:"Membership",de:"Mitgliedschaft"},
+    fl2a:{en:"Getting There",de:"Anfahrt"},
+    fl2b:{en:"Matchday Guide",de:"Spieltag-Guide"},
+    fl2c:{en:"Accessibility",de:"Barrierefreiheit"},
+    fl3b:{en:"Die Roten",de:"Die Roten"},
+    disc:{en:"Unofficial fan concept and design study. Not affiliated with, endorsed by, or connected to FC Bayern München AG. All club names, crests and marks belong to their respective owners.",
+          de:"Inoffizielles Fan-Konzept und Designstudie. Nicht verbunden mit, unterstützt von oder in Beziehung zur FC Bayern München AG. Alle Vereinsnamen, Wappen und Marken gehören ihren jeweiligen Eigentümern."}
+  };
+  var btns=[].slice.call(document.querySelectorAll("#lang button"));
+  function setLang(l){
+    document.documentElement.setAttribute("lang",l);
+    document.querySelectorAll("[data-i18n]").forEach(function(el){
+      var t=I18N[el.getAttribute("data-i18n")];
+      if(t&&t[l]!=null) el.innerHTML=t[l];
+    });
+    btns.forEach(function(b){b.classList.toggle("active",b.getAttribute("data-set")===l);});
+    try{localStorage.setItem("fcb-lang",l);}catch(e){}
+  }
+  btns.forEach(function(b){b.addEventListener("click",function(){setLang(b.getAttribute("data-set"));});});
+  var saved="en";try{saved=localStorage.getItem("fcb-lang")||"en";}catch(e){}
+  setLang(saved);
+})();
+</script>
+
+</body></html>
